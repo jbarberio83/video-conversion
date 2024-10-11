@@ -1,34 +1,25 @@
-<mat-button-toggle-group [(ngModel)]="isMultiThreadOption" (ngModelChange)="modeChanged()" class="toggle-group" name="favoriteColor" aria-label="Favorite Color">
-  <mat-button-toggle [value]="false">Single thread mode</mat-button-toggle>
-  <mat-button-toggle [value]="true">Multi thread mode</mat-button-toggle>
-</mat-button-toggle-group>
-<h3>Record video</h3>
+<h3>Select a video to compress</h3>
 <div style="display: flex; align-items: center">
-  <div style="margin-right: 100px; position: relative">
-    <div *ngIf="isRecording" class="video-duration d-flex align-items-center">
-      <div class="indicator mr-1"></div>
-      <div>{{ duration }}</div>
-    </div>
-    <video #videoRef autoplay muted width="600" height="450" id="webcam-video"></video>
-    <div style="height: 30px; font-size: 14px" id="file-size">{{ fileSizeBefore }}</div>
-  </div>
-  <button mat-flat-button color="primary" *ngIf="!isRecording; else recordingRef" (click)="startRecording()">Start Recording</button>
-  <ng-template #recordingRef>
-    <button mat-flat-button color="primary" (click)="stopRecording()" id="stop-btn">Stop Recording</button>
-  </ng-template>
+  <input type="file" accept="video/*" (change)="onFileSelected($event)">
 </div>
 
 <br />
 
 <p style="margin: 10px 0 0" id="message">Ffmpeg logs: {{ videoConversionService.message | async }}</p>
-<p style="margin-top: 10px; font-weight: 600" id="conversion-time">Conversion time: {{ videoConversionService.conversionTime | async }}</p>
+<p style="margin: 10px 0 0" id="file-size-before">{{ fileSizeBefore }}</p>
+<p style="margin: 10px 0 0" id="conversion-time">Conversion time: {{ videoConversionService.conversionTime | async }}</p>
+<p style="margin: 10px 0 0" id="file-size-after">{{ fileSizeAfter }}</p>
 <br />
+
+<!-- Agregamos aquí el tamaño del archivo antes de la conversión -->
+
+
 <div style="display: flex; align-items: center; margin-top: 20px">
-  <div *ngIf="originSrc && !isRecording" style="margin-right: 10px" >
+  <div *ngIf="originSrc" style="margin-right: 10px">
     <p>ORIGINAL VIDEO:</p>
     <video [src]="originSrc" width="600" height="450" id="output-video-original" controls></video><br />
   </div>
-  <div *ngIf="!isRecording && (videoConversionService.convertedVideoSrc | async)">
+  <div *ngIf="(videoConversionService.convertedVideoSrc | async)">
     <p>MP4 VIDEO</p>
     <video [src]="videoConversionService.convertedVideoSrc | async" width="600" height="450" id="output-video" controls></video><br />
   </div>

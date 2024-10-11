@@ -20,7 +20,8 @@ export class AppComponent implements OnInit{
   mediaRecorder!: MediaRecorder | null;
   finalBlob!: Blob;
   originSrc!: string;
-  fileSizeBefore = 'File size';
+  fileSizeBefore = 'File size before conversion';
+  fileSizeAfter = 'File size after conversion';
   isRecording = false;
   duration = 0;
   durationInterval!: any;
@@ -30,63 +31,35 @@ export class AppComponent implements OnInit{
     public videoConversionService: VideoConversionService) {
   }
   async ngOnInit() {
-    this.startStream();
     this.videoConversionService.loadFFmpeg(this.isMultiThreadOption);
   }
   modeChanged() {
     this.videoConversionService.loadFFmpeg(this.isMultiThreadOption);
   }
-  async startStream() {
-    const constraints = {
-      video: {
-        width: { ideal: 640 },
-        height: { ideal: 480 }
-      },
-      audio: true
-    };
-    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-    this.videoRef.nativeElement.srcObject = this.stream;
-    this.videoRef.nativeElement.muted = true;
-  }
-  async startRecording() {
-    this.isRecording = true;
-    this.recordedBlobs = [];
 
-    this.mediaRecorder = new MediaRecorder(this.stream!, {
-      bitsPerSecond: 1000000
-    });
+  async onFileSelected(event: any) {
+    const file = event.target.files[0];  // Obtenemos el archivo seleccionado
+    if (file) {
+      // Mostramos el tamaño del archivo antes de la conversión
+      const fileSizeBefore = (file.size / 1024 / 1024).toFixed(2);  // Tamaño en MB
+      this.fileSizeBefore = `File size before conversion: ${fileSizeBefore} MB`;
 
-    this.mediaRecorder.ondataavailable = (event: any) => {
-      if (event.data && event.data.size > 0) {
-        this.recordedBlobs.push(event.data);
-      }
-    };
-    this.mediaRecorder.start(100);
-    this.startDurationCounter();
-  }
-  stopRecording() {
-    if (!this.mediaRecorder) {
-      return;
-    }
-    clearInterval(this.durationInterval);
-    this.mediaRecorder.onstop = async () => {
-      this.ngZone.run(() => {
-        this.videoConversionService.convert(this.recordedBlobs);
-        this.mediaRecorder = null;
-        this.finalBlob = new Blob(this.recordedBlobs, {type: 'video/webm'});
-        const fileSizeBefore = (this.finalBlob.size / 1024 / 1024).toFixed(2);
-        this.fileSizeBefore = `File size before conversion: ${fileSizeBefore} MB`;
-        this.originSrc = URL.createObjectURL(this.finalBlob);
+      // Guardamos la URL del archivo original para previsualizar el video
+      this.originSrc = URL.createObjectURL(file);
+
+      // Realizamos la conversión y después de que termine, actualizamos el tamaño del archivo convertido
+      this.videoConversionService.convert([file]).then(() => {
+        // Esperamos a que la conversión termine para obtener el tamaño del archivo resultante
+        this.videoConversionService.convertedVideoSrc.subscribe(async (src) => {
+          if (src) {
+            const response = await fetch(src); // Hacemos una solicitud para obtener el archivo convertido
+            const blob = await response.blob(); // Convertimos la respuesta en Blob
+            const fileSizeAfter = (blob.size / 1024 / 1024).toFixed(2); // Calculamos el tamaño en MB
+            this.fileSizeAfter = `File size after conversion: ${fileSizeAfter} MB`;
+          }
+        });
       });
-    };
-    this.mediaRecorder.stop();
-    this.isRecording = false;
-  }
-  startDurationCounter() {
-    this.duration = 0;
-    this.durationInterval = setInterval(() => {
-      this.duration++;
-    }, 1000);
+    }
   }
 }
